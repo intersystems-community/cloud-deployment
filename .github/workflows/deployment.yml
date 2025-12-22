@@ -54,6 +54,7 @@ env:
   NAMESPACE:      dev-cloud-workload
   SERVICE_PORT:   ${{ inputs.port }}
   SERVICE_MEMORY: ${{ inputs.memory }}
+  HELM_URL:       https://charts.demo.community.intersystems.com
   HELM_REPO:      intersystems-charts
   HELM_VERSION:   0.0.1
 
@@ -145,7 +146,7 @@ jobs:
         export CUSTOM_VARS_LIST_ESCAPED=$(echo "${{ secrets.CUSTOM_VARS_LIST }}" | sed -E 's/"/\\"/g')
 
         echo "[INFO] Installing IRIS Helm charts repository..."
-        helm repo add intersystems-charts https://charts.demo.community.intersystems.com
+        helm repo add intersystems-charts ${HELM_URL}
 
         echo "[INFO] Deploy Helm release..."
         helm upgrade --install ${{ inputs.name }} ${HELM_REPO}/iris-app \

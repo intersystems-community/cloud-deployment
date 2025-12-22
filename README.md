@@ -4,7 +4,7 @@ InterSystems Dev Cloud Deployment
 Usage
 ==
 
-In your repository create file `.github/workflows/deploy.yml` with content. Replace `<name-of-demo>` with the domain name, which will be used before `.sandbox.developer.intersystems.com`. Ask for deployment key and set it to secrets as `SERVICE_ACCOUNT_KEY`
+In your repository create file `.github/workflows/deploy.yml` with content. Replace `<deployment-name>` with the domain name, which will be used before `.sandbox.developer.intersystems.com`. Ask for deployment key and set it to secrets as `SERVICE_ACCOUNT_KEY`
 
 ```yaml
 name: Dev Cloud Deploy
@@ -18,9 +18,9 @@ on:
 
 jobs:
   deploy:
-    uses: intersystems-community/cloud-deployment/.github/workflows/deployment.yml@dev-cloud-deployment
+    uses: intersystems-community/cloud-deployment/.github/workflows/deployment.yml@main
     with:
-      name: <name-of-demo>
+      name: <deployment-name>
       ## Optional
       # memory: 1Gi
       # port: 8081
