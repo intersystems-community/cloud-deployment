@@ -15,6 +15,10 @@ on:
         description: 'WebPort for the running instance'
         type: number
         default: 52773
+      isc_data_directory:
+        description: 'ISC_DATA_DIRECTORY environment variable value, e.g. /data (leave empty to skip)'
+        type: string
+        default: ''
     secrets:
       SERVICE_ACCOUNT_KEY:
         required: true
@@ -96,16 +100,33 @@ jobs:
 
     - name: Prepare Helm Environment Variables
       id: prepare_helm_vars
+      env:
+        CUSTOM_VARS_RAW: ${{ secrets.CUSTOM_VARS_LIST }}
+        ISC_DATA_DIR: ${{ inputs.isc_data_directory }}
       run: |
-        echo "[INFO] Escaping custom variables..."
-        export CUSTOM_VARS_LIST_ESCAPED=$(echo "${{ secrets.CUSTOM_VARS_LIST }}" | sed -E 's/"/\\"/g')
+        CUSTOM_VARS_LIST_ESCAPED=""
+        if [[ -n "${CUSTOM_VARS_RAW:-}" ]]; then
+          CUSTOM_VARS_LIST_ESCAPED=$(echo "$CUSTOM_VARS_RAW" | sed -E 's/"/\\"/g')
+        fi
 
         HELM_ARGS_STRING=""
-        if [[ -n "$CUSTOM_VARS_LIST_ESCAPED" ]]; then
+        INDEX=0
+
+        # Add ISC_DATA_DIRECTORY if provided
+        if [[ -n "${ISC_DATA_DIR:-}" ]]; then
+          echo "[INFO] Adding ISC_DATA_DIRECTORY=${ISC_DATA_DIR}"
+          HELM_ARGS_STRING="$HELM_ARGS_STRING --set-string 'extraEnv[$INDEX].name=ISC_DATA_DIRECTORY' --set-string 'extraEnv[$INDEX].value=${ISC_DATA_DIR}'"
+          INDEX=$((INDEX + 1))
+        fi
+
+        # Add GITHUB_REPO
+        HELM_ARGS_STRING="$HELM_ARGS_STRING --set-string 'extraEnv[$INDEX].name=GITHUB_REPO' --set-string 'extraEnv[$INDEX].value=${GITHUB_REPO}'"
+        INDEX=$((INDEX + 1))
+
+        if [[ -n "${CUSTOM_VARS_LIST_ESCAPED:-}" ]]; then
           echo "[INFO] CUSTOM_VARS_LIST_ESCAPED contains data. Parsing key-values..."
           IFS=',' read -r -a ENV_PAIRS <<< "$CUSTOM_VARS_LIST_ESCAPED"
 
-          INDEX=2
           for PAIR in "${ENV_PAIRS[@]}"; do
             # Skip empty pairs
             if [[ -z "$PAIR" ]]; then
@@ -126,7 +147,7 @@ jobs:
             # Only add if KEY is not empty (VALUE can be empty string)
             if [[ -n "$KEY" ]]; then
               HELM_ARGS_STRING="$HELM_ARGS_STRING --set-string 'extraEnv[$INDEX].name=$KEY' --set-string 'extraEnv[$INDEX].value=$VALUE'"
-              ((INDEX++))
+              INDEX=$((INDEX + 1))
             else
               echo "[WARNING] Skipping empty key: KEY='$KEY', VALUE='$VALUE'"
             fi
@@ -135,15 +156,11 @@ jobs:
 
         # Output the helm args string
         echo "helm_args=$HELM_ARGS_STRING" >> $GITHUB_OUTPUT
-        echo "[DEBUG] Generated helm_args: $HELM_ARGS_STRING"
 
     - name: Deploy Stateful Workload
       run: |
         echo "[INFO] Set google project..."
         gcloud config set project ${PROJECT_ID}
-
-        echo "[INFO] Escaping custom variables..."
-        export CUSTOM_VARS_LIST_ESCAPED=$(echo "${{ secrets.CUSTOM_VARS_LIST }}" | sed -E 's/"/\\"/g')
 
         echo "[INFO] Installing IRIS Helm charts repository..."
         helm repo add intersystems-charts ${HELM_URL}
@@ -158,10 +175,6 @@ jobs:
             --set service.webPort=${SERVICE_PORT:-52773} \
             --set ingress.name=${{ inputs.name }} \
             --set ingress.domain=${DOMAIN_NAME} \
-            --set-string 'extraEnv[0].name=ISC_DATA_DIRECTORY' \
-            --set-string 'extraEnv[0].value=/isc/data' \
-            --set-string 'extraEnv[1].name=GITHUB_REPO' \
-            --set-string 'extraEnv[1].value=${GITHUB_REPO}' \
             ${{ steps.prepare_helm_vars.outputs.helm_args }} \
             --wait \
             --atomic \
