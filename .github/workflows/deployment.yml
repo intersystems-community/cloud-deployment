@@ -106,7 +106,7 @@ jobs:
       run: |
         CUSTOM_VARS_LIST_ESCAPED=""
         if [[ -n "${CUSTOM_VARS_RAW:-}" ]]; then
-          CUSTOM_VARS_LIST_ESCAPED=$(echo "$CUSTOM_VARS_RAW" | sed -E 's/"/\\"/g')
+          CUSTOM_VARS_LIST_ESCAPED=$(echo "$CUSTOM_VARS_RAW" | tr -d '\n\r' | sed -E 's/"/\\"/g')
         fi
 
         HELM_ARGS_STRING=""
