@@ -135,21 +135,21 @@ jobs:
 
             # Check if the pair contains '='
             if [[ "$PAIR" != *"="* ]]; then
-              echo "[WARNING] Skipping malformed pair (no '='): '$PAIR'"
+              echo "[WARNING] Skipping malformed pair (no '=')"
               continue
             fi
 
             # Split each pair into KEY and VALUE at the first '='
             KEY="${PAIR%%=*}"
             VALUE="${PAIR#*=}"
-            echo "[INFO] Processing pair: '$PAIR' -> KEY='$KEY', VALUE='$VALUE'"
+            echo "[INFO] Processing pair: KEY='$KEY'"
 
             # Only add if KEY is not empty (VALUE can be empty string)
             if [[ -n "$KEY" ]]; then
               HELM_ARGS_STRING="$HELM_ARGS_STRING --set-string 'extraEnv[$INDEX].name=$KEY' --set-string 'extraEnv[$INDEX].value=$VALUE'"
               INDEX=$((INDEX + 1))
             else
-              echo "[WARNING] Skipping empty key: KEY='$KEY', VALUE='$VALUE'"
+              echo "[WARNING] Skipping pair with empty key"
             fi
           done
         fi
