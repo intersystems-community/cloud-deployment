@@ -19,6 +19,10 @@ on:
         description: 'ISC_DATA_DIRECTORY environment variable value, e.g. /data (leave empty to skip)'
         type: string
         default: ''
+      dev:
+        description: 'Set to true to deploy to dev-cloud-dev-workload instead of dev-cloud-workload'
+        type: boolean
+        default: false
     secrets:
       SERVICE_ACCOUNT_KEY:
         required: true
@@ -55,7 +59,7 @@ env:
   GITHUB_SHA:     ${{ github.sha }}
   GITHUB_REPO:    ${{ github.repository }}
   REGION:         europe-west2
-  NAMESPACE:      dev-cloud-workload
+  NAMESPACE:      ${{ inputs.dev && 'dev-cloud-dev-workload' || 'dev-cloud-workload' }}
   SERVICE_PORT:   ${{ inputs.port }}
   SERVICE_MEMORY: ${{ inputs.memory }}
   HELM_URL:       https://charts.demo.community.intersystems.com
