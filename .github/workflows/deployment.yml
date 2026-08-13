@@ -64,7 +64,7 @@ env:
   SERVICE_MEMORY: ${{ inputs.memory }}
   HELM_URL:       https://charts.demo.community.intersystems.com
   HELM_REPO:      intersystems-charts
-  HELM_VERSION:   0.0.2
+  HELM_VERSION:   0.0.4
 
 jobs:
   deploy_workload:
