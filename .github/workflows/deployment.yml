@@ -89,20 +89,36 @@ jobs:
         cluster_name: ${{ env.CLUSTER_NAME }}
         location:     ${{ env.REGION }}
 
+    - name: Check whether the deployment is stopped
+      id: stopped
+      run: |
+        # Stop in the Developer Cloud UI scales the StatefulSet to 0. helm upgrade would reset
+        # replicas to the chart default and start it again, so a stopped deployment is skipped.
+        REPLICAS=$(kubectl -n "${NAMESPACE}" get statefulset "${{ inputs.name }}-iris-app" \
+                     -o jsonpath='{.spec.replicas}' 2>/dev/null) || REPLICAS=""
+        if [ "$REPLICAS" = "0" ]; then
+          echo "::notice::Deployment ${{ inputs.name }} is stopped - push was not deployed. Start it to deploy the latest commit."
+          echo "stopped=true" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Setup gcloud cli
+      if: steps.stopped.outputs.stopped != 'true'
       uses: google-github-actions/setup-gcloud@v3.0.1
       with:
         version: '572.0.0'
 
     - name: Authorize Docker push
+      if: steps.stopped.outputs.stopped != 'true'
       run: |
         gcloud --quiet auth configure-docker ${REGION}-docker.pkg.dev
 
     - name: Build and Push image
+      if: steps.stopped.outputs.stopped != 'true'
       run: |
         docker buildx build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/community/${IMAGE_NAME}:${GITHUB_SHA} --push .
 
     - name: Prepare Helm Environment Variables
+      if: steps.stopped.outputs.stopped != 'true'
       id: prepare_helm_vars
       env:
         CUSTOM_VARS_RAW: ${{ secrets.CUSTOM_VARS_LIST }}
@@ -162,6 +178,7 @@ jobs:
         echo "helm_args=$HELM_ARGS_STRING" >> $GITHUB_OUTPUT
 
     - name: Deploy Stateful Workload
+      if: steps.stopped.outputs.stopped != 'true'
       run: |
         echo "[INFO] Set google project..."
         gcloud config set project ${PROJECT_ID}

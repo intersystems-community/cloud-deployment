@@ -29,3 +29,8 @@ jobs:
       ## Optional
       # CUSTOM_VARS_LIST: "var1=${{ secrets.CUSTOM_VAR1 }},var2=value2,..."
 ```
+
+Stopped deployments
+==
+
+A deployment stopped in the Developer Cloud UI stays stopped: the workflow checks the instance first and skips the build and deploy when it is stopped. Start it in the UI, then push again (or re-run the workflow) to deploy the latest commit.
